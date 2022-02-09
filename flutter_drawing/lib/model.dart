@@ -1,29 +1,36 @@
 import 'dart:ui';
 import 'package:uuid/uuid.dart';
 
-class Canvas {
+class AlchemyCanvas {
   late final String id;
-  List<Layer> layers = [];
+  List<AlchemyLayer> layers = [];
 
   double scalingFactor = 1;
 
-  Canvas({
+  AlchemyCanvas({
     this.id = "",
     this.layers = const [],
   }) {
     if (id.isEmpty) {
       id = const Uuid().v4();
     }
+
+    layers.addAll(
+      [
+        AlchemyLayer(0),
+        AlchemyLayer(1),
+      ],
+    );
   }
 }
 
-class Layer {
+class AlchemyLayer {
   late final String id;
   int index = 0;
   String name = "Layer";
-  List<Path> paths = [];
+  List<AlchemyPath> paths = [];
 
-  Layer(
+  AlchemyLayer(
     this.index, {
     this.name = "Layer",
     this.id = "",
@@ -35,9 +42,15 @@ class Layer {
   }
 }
 
-class Path {
+class AlchemyPath {
   late final String id;
   int index = 0;
   late Paint paint;
   List<Offset> points = [];
+
+  AlchemyPath(this.points, this.paint, {this.id = "", this.index = 0}) {
+    if (id.isEmpty) {
+      id = const Uuid().v4();
+    }
+  }
 }

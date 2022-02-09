@@ -3,6 +3,8 @@
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_drawing/canvasState.dart';
+import 'package:provider/provider.dart';
 
 void main() => runApp(MyApp());
 
@@ -35,82 +37,81 @@ class _MyPainterState extends State<MyPainter> {
 
   @override
   Widget build(BuildContext context) {
-    //scalingFactor = MediaQuery.of(context).size.shortestSide / 100;
-
     return Scaffold(
       appBar: AppBar(
         title: Text('some Drawing exercise'),
         backgroundColor: Colors.deepPurple[600],
       ),
-      body: Listener(
-        onPointerSignal: (details) {
-          if (details is PointerScrollEvent) {
-            var event = details as PointerScrollEvent;
-            print(event.scrollDelta);
-            setState(() {
-              if (event.scrollDelta.dy > 0) {
-                print("zoom out");
-                scalingFactor *= 0.95;
-              } else if (event.scrollDelta.dy < 0) {
-                print("zoom in");
-                scalingFactor *= 1.05;
+      body: ChangeNotifierProvider(
+        create: (context) => CanvasState(),
+        child: Consumer<CanvasState>(
+          builder: (context, canvasState, chid) => Listener(
+            onPointerSignal: (details) {
+              if (details is PointerScrollEvent) {
+                if (details.scrollDelta.dy > 0) {
+                  canvasState.updateScalingFactor(0.95);
+                } else if (details.scrollDelta.dy < 0) {
+                  canvasState.updateScalingFactor(1.05);
+                }
               }
-              print("new factor: $scalingFactor");
-            });
-          }
-        },
-        child: GestureDetector(
-          onScaleStart: (details) {
-            setState(() {
-              drawingPoints.add(
-                DrawingPoint(
-                  details.localFocalPoint / scalingFactor,
-                  Paint()
-                    ..color = selectedColor
-                    ..isAntiAlias = true
-                    ..strokeWidth = strokeWidth
-                    ..strokeCap = StrokeCap.round,
-                  selectedPenOrMarker,
-                  false,
+            },
+            child: GestureDetector(
+              onScaleStart: (details) {
+                canvasState.startNewPath(details.localFocalPoint);
+
+                /* setState(() {
+                  drawingPoints.add(
+                    DrawingPoint(
+                      details.localFocalPoint / scalingFactor,
+                      Paint()
+                        ..color = selectedColor
+                        ..isAntiAlias = true
+                        ..strokeWidth = strokeWidth
+                        ..strokeCap = StrokeCap.round,
+                      selectedPenOrMarker,
+                      false,
+                    ),
+                  );
+                }); */
+              },
+              onScaleUpdate: (details) {
+                canvasState.addToPath(details.localFocalPoint);
+                /* setState(() {
+                  scalingFactor /= details.scale;
+                  drawingPoints.add(
+                    DrawingPoint(
+                      details.localFocalPoint / scalingFactor,
+                      Paint()
+                        ..color = selectedColor
+                        ..isAntiAlias = true
+                        ..strokeWidth = strokeWidth
+                        ..strokeCap = StrokeCap.round,
+                      selectedPenOrMarker,
+                      false,
+                    ),
+                  );
+                }); */
+              },
+              onScaleEnd: (details) {
+                /* setState(() {
+                  drawingPoints.add(
+                    DrawingPoint(
+                      Offset(0, 0),
+                      Paint(),
+                      selectedPenOrMarker,
+                      true,
+                    ),
+                  );
+                }); */
+              },
+              child: CustomPaint(
+                painter: _DrawingPainter(drawingPoints, scalingFactor),
+                child: Container(
+                  height: MediaQuery.of(context).size.shortestSide,
+                  width: MediaQuery.of(context).size.shortestSide,
+                  decoration: BoxDecoration(border: Border.all()),
                 ),
-              );
-            });
-          },
-          onScaleUpdate: (details) {
-            setState(() {
-              scalingFactor /= details.scale;
-              drawingPoints.add(
-                DrawingPoint(
-                  details.localFocalPoint / scalingFactor,
-                  Paint()
-                    ..color = selectedColor
-                    ..isAntiAlias = true
-                    ..strokeWidth = strokeWidth
-                    ..strokeCap = StrokeCap.round,
-                  selectedPenOrMarker,
-                  false,
-                ),
-              );
-            });
-          },
-          onScaleEnd: (details) {
-            setState(() {
-              drawingPoints.add(
-                DrawingPoint(
-                  Offset(0, 0),
-                  Paint(),
-                  selectedPenOrMarker,
-                  true,
-                ),
-              );
-            });
-          },
-          child: CustomPaint(
-            painter: _DrawingPainter(drawingPoints, scalingFactor),
-            child: Container(
-              height: MediaQuery.of(context).size.shortestSide,
-              width: MediaQuery.of(context).size.shortestSide,
-              decoration: BoxDecoration(border: Border.all()),
+              ),
             ),
           ),
         ),
