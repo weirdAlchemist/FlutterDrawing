@@ -1,7 +1,13 @@
 // main.dart
 
 import 'dart:ui';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_drawing/canvasState.dart';
+import 'package:flutter_drawing/drawingPainter.dart';
+import 'package:flutter_drawing/model.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:provider/provider.dart';
 
 void main() => runApp(MyApp());
 
@@ -14,6 +20,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.pink,
       ),
       home: MyPainter(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -24,195 +31,139 @@ class MyPainter extends StatefulWidget {
 }
 
 class _MyPainterState extends State<MyPainter> {
-  Color selectedColor = Colors.red;
-  bool selectedPenOrMarker = true;
-  double strokeWidth = 5;
-
-  double scalingFactor = 1;
-
-  List<DrawingPoint> drawingPoints = [];
+  CanvasState stateObject = CanvasState();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
-    scalingFactor = MediaQuery.of(context).size.shortestSide / 100;
-
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Text('some Drawing exercise'),
         backgroundColor: Colors.deepPurple[600],
       ),
-      body: GestureDetector(
-        onPanStart: (details) {
-          setState(() {
-            drawingPoints.add(
-              DrawingPoint(
-                details.localPosition / scalingFactor,
-                Paint()
-                  ..color = selectedColor
-                  ..isAntiAlias = true
-                  ..strokeWidth = strokeWidth
-                  ..strokeCap = StrokeCap.round,
-                selectedPenOrMarker,
-                false,
+      body: ChangeNotifierProvider(
+        create: (context) => stateObject,
+        child: Consumer<CanvasState>(
+          builder: (context, canvasState, child) => Listener(
+            onPointerSignal: (details) {
+              if (details is PointerScrollEvent) {
+                if (details.scrollDelta.dy > 0) {
+                  canvasState.updateScalingFactor(0.95);
+                } else if (details.scrollDelta.dy < 0) {
+                  canvasState.updateScalingFactor(1.05);
+                }
+              }
+            },
+            child: GestureDetector(
+              onScaleStart: (details) {
+                canvasState.startNewPath(details.localFocalPoint);
+              },
+              onScaleUpdate: (details) {
+                canvasState.addToPath(details.localFocalPoint);
+              },
+              onScaleEnd: (details) {},
+              child: CustomPaint(
+                painter: DrawingPainter(canvasState.canvas),
+                child: Container(
+                  height: MediaQuery.of(context).size.shortestSide,
+                  width: MediaQuery.of(context).size.shortestSide,
+                  decoration: BoxDecoration(border: Border.all()),
+                ),
               ),
-            );
-          });
-        },
-        onPanUpdate: (details) {
-          setState(() {
-            drawingPoints.add(
-              DrawingPoint(
-                details.localPosition / scalingFactor,
-                Paint()
-                  ..color = selectedColor
-                  ..isAntiAlias = true
-                  ..strokeWidth = strokeWidth
-                  ..strokeCap = StrokeCap.round,
-                selectedPenOrMarker,
-                false,
-              ),
-            );
-          });
-        },
-        onPanEnd: (details) {
-          setState(() {
-            drawingPoints.add(
-              DrawingPoint(
-                Offset(0, 0),
-                Paint(),
-                selectedPenOrMarker,
-                true,
-              ),
-            );
-          });
-        },
-        child: CustomPaint(
-          painter: _DrawingPainter(drawingPoints, scalingFactor),
-          child: Container(
-            height: MediaQuery.of(context).size.shortestSide,
-            width: MediaQuery.of(context).size.shortestSide,
-            decoration: BoxDecoration(border: Border.all()),
+            ),
           ),
         ),
       ),
-      bottomNavigationBar: BottomAppBar(
-        child: Container(
-          color: Colors.grey[200],
-          padding: EdgeInsets.all(10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildPenChose(Colors.red),
-              _buildPenChose(Colors.blue),
-              _buildPenChose(Colors.green),
-              const Text("<~ Pens"),
-              const Spacer(),
-              IconButton(
-                  onPressed: () => setState(() {
-                        drawingPoints = [];
-                      }),
-                  icon: const Icon(Icons.clear)),
-              const Spacer(),
-              const Text("Marker ~>"),
-              _buildMarkerChose(Colors.red),
-              _buildMarkerChose(Colors.blue),
-              _buildMarkerChose(Colors.green),
-            ],
+      floatingActionButton: SpeedDial(
+        child: Icon(Icons.android),
+        backgroundColor: Colors.deepPurple[600],
+        children: [
+          SpeedDialChild(
+            label: "Pens",
+            child: SpeedDial(
+              child: Icon(Icons.edit),
+              children: [..._buildPenChose(stateObject)],
+            ),
+          ),
+          SpeedDialChild(
+            child: Icon(Icons.layers),
+            label: "Layers",
+            onTap: () {
+              _scaffoldKey.currentState?.showBottomSheet((context) {
+                return Container(
+                  height: 100.0,
+                  color: Colors.grey,
+                  child: DefaultTabController(
+                    length: 3,
+                    child: Column(
+                      children: [
+                        TabBar(
+                          tabs: [
+                            Tab(text: "Pens"),
+                            Tab(text: "Layers"),
+                            Tab(text: "Tools"),
+                          ],
+                        ),
+                        /* Container(
+                          child: TabBarView(
+                            children: [
+                              Container(
+                                  height: 50,
+                                  width: 100,
+                                  child: Text("PENPENPEN")),
+                              Container(
+                                  height: 50,
+                                  width: 100,
+                                  child: Text("LAYERLAYER")),
+                              Container(
+                                  height: 50,
+                                  width: 100,
+                                  child: Text("TOOOOOL")),
+                            ],
+                          ),
+                        ), */
+                      ],
+                    ),
+                  ),
+                );
+              });
+            },
+            onLongPress: () {},
+          ),
+          SpeedDialChild(
+            child: Icon(Icons.clear_all),
+            label: "Clear layer / canvas",
+            onTap: () {},
+            onLongPress: () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<SpeedDialChild> _buildPenChose(CanvasState state) {
+    var pens = state.canvas.pens;
+    bool isSelected = false;
+    List<SpeedDialChild> result = [];
+
+    for (var pen in pens) {
+      isSelected = state.currentDrawingPen == pen;
+      result.add(SpeedDialChild(
+        child: const Icon(Icons.edit),
+        labelWidget: Container(
+          height: 20,
+          width: 40,
+          child: Divider(
+            color: pen.paint.color,
+            thickness: pen.paint.strokeWidth,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPenChose(Color color) {
-    bool isSelected = selectedPenOrMarker && selectedColor == color;
-
-    return GestureDetector(
-      onTap: () => setState(() {
-        selectedColor = color;
-        strokeWidth = 5;
-
-        selectedPenOrMarker = true;
-      }),
-      child: Container(
-        height: 40,
-        width: 40,
-        child: Icon(
-          Icons.balcony_rounded,
-          color: color,
-          size: (isSelected) ? 40 : 20,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMarkerChose(Color color) {
-    bool isSelected = !selectedPenOrMarker && selectedColor == color;
-
-    return GestureDetector(
-      onTap: () => setState(() {
-        selectedColor = color;
-        strokeWidth = 20;
-
-        selectedPenOrMarker = false;
-      }),
-      child: Container(
-        height: 40,
-        width: 40,
-        child: Icon(
-          Icons.adb_rounded,
-          color: color,
-          size: (isSelected) ? 40 : 20,
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawingPainter extends CustomPainter {
-  late final List<DrawingPoint> drawingPoints;
-  late final double scalingFactor;
-
-  _DrawingPainter(this.drawingPoints, this.scalingFactor);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    drawSomething(
-      drawingPoints.where((element) => !element.penOrMarker).toList(),
-      canvas,
-    );
-
-    drawSomething(
-      drawingPoints.where((element) => element.penOrMarker).toList(),
-      canvas,
-    );
-  }
-
-  void drawSomething(List<DrawingPoint> drawingPoints, Canvas canvas) {
-    for (var i = 0; i < drawingPoints.length - 1; i++) {
-      if (!drawingPoints[i].endMarker && !drawingPoints[i + 1].endMarker) {
-        canvas.drawLine(
-            drawingPoints[i].offset * scalingFactor,
-            drawingPoints[i + 1].offset * scalingFactor,
-            drawingPoints[i].paint);
-      } else if (!drawingPoints[i].endMarker &&
-          drawingPoints[i + 1].endMarker) {
-        canvas.drawPoints(PointMode.points,
-            [drawingPoints[i].offset * scalingFactor], drawingPoints[i].paint);
-      }
+        onTap: () => state.switchPen(pen),
+        foregroundColor: pen.paint.color,
+        backgroundColor: isSelected ? Colors.grey[200] : Colors.white,
+      ));
     }
+    return result;
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
-  }
-}
-
-class DrawingPoint {
-  Offset offset;
-  Paint paint;
-  bool penOrMarker;
-  bool endMarker;
-  DrawingPoint(this.offset, this.paint, this.penOrMarker, this.endMarker);
 }
