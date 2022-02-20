@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_drawing/canvasState.dart';
 import 'package:flutter_drawing/drawingPainter.dart';
 import 'package:flutter_drawing/model.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:provider/provider.dart';
 
 void main() => runApp(MyApp());
@@ -19,6 +20,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.pink,
       ),
       home: MyPainter(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -30,10 +32,12 @@ class MyPainter extends StatefulWidget {
 
 class _MyPainterState extends State<MyPainter> {
   CanvasState stateObject = CanvasState();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Text('some Drawing exercise'),
         backgroundColor: Colors.deepPurple[600],
@@ -41,7 +45,7 @@ class _MyPainterState extends State<MyPainter> {
       body: ChangeNotifierProvider(
         create: (context) => stateObject,
         child: Consumer<CanvasState>(
-          builder: (context, canvasState, chid) => Listener(
+          builder: (context, canvasState, child) => Listener(
             onPointerSignal: (details) {
               if (details is PointerScrollEvent) {
                 if (details.scrollDelta.dy > 0) {
@@ -71,55 +75,94 @@ class _MyPainterState extends State<MyPainter> {
           ),
         ),
       ),
-      bottomNavigationBar: ChangeNotifierProvider(
-        create: (context) => stateObject,
-        child: Consumer<CanvasState>(
-          builder: (context, canvasState, chid) => BottomAppBar(
-            child: Container(
-              color: Colors.grey[200],
-              padding: EdgeInsets.all(10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ..._buildPenChose(canvasState),
-                  const Text("<~ Pens"),
-                  const Spacer(),
-                  IconButton(
-                      onPressed: () {
-                        canvasState.clearCanvas();
-                      },
-                      icon: const Icon(Icons.clear)),
-                  const Spacer(),
-                  const Text("Marker ~>"),
-                ],
-              ),
+      floatingActionButton: SpeedDial(
+        child: Icon(Icons.android),
+        backgroundColor: Colors.deepPurple[600],
+        children: [
+          SpeedDialChild(
+            label: "Pens",
+            child: SpeedDial(
+              child: Icon(Icons.edit),
+              children: [..._buildPenChose(stateObject)],
             ),
           ),
-        ),
+          SpeedDialChild(
+            child: Icon(Icons.layers),
+            label: "Layers",
+            onTap: () {
+              _scaffoldKey.currentState?.showBottomSheet((context) {
+                return Container(
+                  height: 100.0,
+                  color: Colors.grey,
+                  child: DefaultTabController(
+                    length: 3,
+                    child: Column(
+                      children: [
+                        TabBar(
+                          tabs: [
+                            Tab(text: "Pens"),
+                            Tab(text: "Layers"),
+                            Tab(text: "Tools"),
+                          ],
+                        ),
+                        /* Container(
+                          child: TabBarView(
+                            children: [
+                              Container(
+                                  height: 50,
+                                  width: 100,
+                                  child: Text("PENPENPEN")),
+                              Container(
+                                  height: 50,
+                                  width: 100,
+                                  child: Text("LAYERLAYER")),
+                              Container(
+                                  height: 50,
+                                  width: 100,
+                                  child: Text("TOOOOOL")),
+                            ],
+                          ),
+                        ), */
+                      ],
+                    ),
+                  ),
+                );
+              });
+            },
+            onLongPress: () {},
+          ),
+          SpeedDialChild(
+            child: Icon(Icons.clear_all),
+            label: "Clear layer / canvas",
+            onTap: () {},
+            onLongPress: () {},
+          ),
+        ],
       ),
     );
   }
 
-  List<Widget> _buildPenChose(CanvasState state) {
+  List<SpeedDialChild> _buildPenChose(CanvasState state) {
     var pens = state.canvas.pens;
-
-    List<Widget> result = [];
+    bool isSelected = false;
+    List<SpeedDialChild> result = [];
 
     for (var pen in pens) {
-      result.add(
-        GestureDetector(
-          onTap: () => state.switchPen(pen),
-          child: Container(
-            height: 40,
-            width: 40,
-            child: Icon(
-              Icons.balcony_rounded,
-              color: pen.paint.color,
-              size: state.currentDrawingPen == pen ? 40 : 20,
-            ),
+      isSelected = state.currentDrawingPen == pen;
+      result.add(SpeedDialChild(
+        child: const Icon(Icons.edit),
+        labelWidget: Container(
+          height: 20,
+          width: 40,
+          child: Divider(
+            color: pen.paint.color,
+            thickness: pen.paint.strokeWidth,
           ),
         ),
-      );
+        onTap: () => state.switchPen(pen),
+        foregroundColor: pen.paint.color,
+        backgroundColor: isSelected ? Colors.grey[200] : Colors.white,
+      ));
     }
     return result;
   }

@@ -96,7 +96,49 @@ class AlchemyPen {
           Paint()
             ..color = Colors.blue
             ..isAntiAlias = true
+            ..strokeWidth = 3
+            ..strokeCap = StrokeCap.round,
+          foregroundLayer),
+      AlchemyPen(
+          Paint()
+            ..color = Colors.red
+            ..isAntiAlias = true
             ..strokeWidth = 5
+            ..strokeCap = StrokeCap.round,
+          foregroundLayer),
+      AlchemyPen(
+          Paint()
+            ..color = Colors.green
+            ..isAntiAlias = true
+            ..strokeWidth = 5
+            ..strokeCap = StrokeCap.round,
+          foregroundLayer),
+      AlchemyPen(
+          Paint()
+            ..color = Colors.black
+            ..isAntiAlias = true
+            ..strokeWidth = 20
+            ..strokeCap = StrokeCap.round,
+          backgroundLayer),
+      AlchemyPen(
+          Paint()
+            ..color = Colors.blue
+            ..isAntiAlias = true
+            ..strokeWidth = 20
+            ..strokeCap = StrokeCap.round,
+          backgroundLayer),
+      AlchemyPen(
+          Paint()
+            ..color = Colors.red
+            ..isAntiAlias = true
+            ..strokeWidth = 50
+            ..strokeCap = StrokeCap.round,
+          backgroundLayer),
+      AlchemyPen(
+          Paint()
+            ..color = Colors.green
+            ..isAntiAlias = true
+            ..strokeWidth = 50
             ..strokeCap = StrokeCap.round,
           backgroundLayer),
     ];

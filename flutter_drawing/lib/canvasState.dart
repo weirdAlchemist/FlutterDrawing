@@ -53,6 +53,7 @@ class CanvasState extends ChangeNotifier {
 
   void switchPen(AlchemyPen newPen) {
     currentDrawingPen = newPen;
+    currentDrawingLayer = newPen.assignedLayer;
     notifyListeners();
   }
 
